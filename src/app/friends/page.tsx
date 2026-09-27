@@ -35,10 +35,8 @@ export default function FriendsPage() {
       <header className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Friends</h1>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button size="icon" variant="outline" className="rounded-full">
-              <UserPlus size={18} />
-            </Button>
+          <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 w-9">
+            <UserPlus size={18} />
           </DialogTrigger>
           <DialogContent className="sm:max-w-md w-[90%] rounded-xl">
             <DialogHeader>
