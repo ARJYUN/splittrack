@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getFriendsDb, getHistoryDb, addExpenseDb, settleAllDb, settleExpenseDb, addFriendDb } from "@/actions/dbActions";
 
 export type Expense = {
   id: string;
@@ -28,159 +29,68 @@ export type Transaction = {
 type AppContextType = {
   friends: Friend[];
   history: Transaction[];
-  addExpense: (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) => void;
-  settleExpense: (friendId: string, expenseId: string) => void;
-  settleAll: (friendId: string) => void;
-  addFriend: (name: string) => void;
+  isLoading: boolean;
+  addExpense: (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) => Promise<void>;
+  settleExpense: (friendId: string, expenseId: string) => Promise<void>;
+  settleAll: (friendId: string) => Promise<void>;
+  addFriend: (name: string) => Promise<void>;
 };
-
-const INITIAL_FRIENDS: Friend[] = [
-  { 
-    id: "1", name: "Rahul", initial: "R", pending: 180, 
-    expenses: [{ id: "e1", title: "Tea & Snacks", amount: 60 }, { id: "e2", title: "Shawarma", amount: 120 }] 
-  },
-  { 
-    id: "2", name: "Adarsh", initial: "A", pending: 220, 
-    expenses: [{ id: "e3", title: "Cab", amount: 150 }, { id: "e4", title: "Bakery", amount: 70 }] 
-  },
-  { 
-    id: "3", name: "Abhinav", initial: "AB", pending: 140, 
-    expenses: [{ id: "e5", title: "Dinner", amount: 140 }] 
-  },
-];
-
-const INITIAL_HISTORY: Transaction[] = [
-  { id: "h1", type: "expense", title: "Dinner", amount: 140, date: new Date().toISOString(), participants: ["AB"] }
-];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [history, setHistory] = useState<Transaction[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [f, h] = await Promise.all([getFriendsDb(), getHistoryDb()]);
+      setFriends(f);
+      setHistory(h as Transaction[]);
+    } catch (error) {
+      console.error("Failed to load DB data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const storedFriends = localStorage.getItem("splittrack_friends");
-    const storedHistory = localStorage.getItem("splittrack_history");
-    if (storedFriends) setFriends(JSON.parse(storedFriends));
-    else setFriends(INITIAL_FRIENDS);
-    
-    if (storedHistory) setHistory(JSON.parse(storedHistory));
-    else setHistory(INITIAL_HISTORY);
-    
-    setIsLoaded(true);
+    loadData();
   }, []);
 
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("splittrack_friends", JSON.stringify(friends));
-      localStorage.setItem("splittrack_history", JSON.stringify(history));
-    }
-  }, [friends, history, isLoaded]);
-
-  const addExpense = (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) => {
-    const newHistory: Transaction = {
-      id: Math.random().toString(36).substr(2, 9),
-      type: "expense",
-      title,
-      amount,
-      date: new Date().toISOString(),
-      participants: participantIds.map(id => {
-        if (id === 'me') return 'M';
-        const f = friends.find(f => f.id === id);
-        return f ? f.initial : '?';
-      })
-    };
-
-    setHistory(prev => [newHistory, ...prev]);
-
-    setFriends(prev => {
-      let updatedFriends = [...prev];
-      
-      participantIds.forEach(pid => {
-        if (pid === "me") return;
-        
-        const fIndex = updatedFriends.findIndex(f => f.id === pid);
-        if (fIndex !== -1) {
-          const friend = updatedFriends[fIndex];
-          
-          let share = 0;
-          if (splitMethod === "equal") {
-            share = amount / participantIds.length;
-          } else {
-            share = customAmounts[pid] || 0;
-          }
-
-          if (share > 0) {
-            const newExp = { id: Math.random().toString(36).substr(2, 9), title, amount: Number(share.toFixed(2)) };
-            updatedFriends[fIndex] = {
-              ...friend,
-              expenses: [...friend.expenses, newExp],
-              pending: Number((friend.pending + share).toFixed(2))
-            };
-          }
-        } else {
-           // If friend doesn't exist in active array, we would normally fetch them from DB.
-           // For mock, we ignore if not found in INITIAL array.
-        }
-      });
-      return updatedFriends;
-    });
+  const addExpense = async (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) => {
+    // Optimistic UI could go here, but let's just await for true consistency
+    await addExpenseDb(title, amount, participantIds, splitMethod, customAmounts);
+    await loadData();
   };
 
-  const settleExpense = (friendId: string, expenseId: string) => {
-    setFriends(prev => prev.map(f => {
-      if (f.id === friendId) {
-        const exp = f.expenses.find(e => e.id === expenseId);
-        if (exp) {
-          setHistory(h => [{
-            id: Math.random().toString(36).substr(2, 9),
-            type: "payment",
-            title: `Settled ${exp.title} from ${f.name}`,
-            amount: exp.amount,
-            date: new Date().toISOString(),
-            participants: [f.initial]
-          }, ...h]);
-        }
-        const updated = f.expenses.filter(e => e.id !== expenseId);
-        const pending = updated.reduce((sum, e) => sum + e.amount, 0);
-        return { ...f, expenses: updated, pending: Number(pending.toFixed(2)) };
-      }
-      return f;
-    }));
+  const settleExpense = async (friendId: string, expenseId: string) => {
+    const friend = friends.find(f => f.id === friendId);
+    if (!friend) return;
+    const exp = friend.expenses.find(e => e.id === expenseId);
+    if (!exp) return;
+    
+    await settleExpenseDb(friendId, exp.amount);
+    await loadData();
   };
 
-  const settleAll = (friendId: string) => {
-    setFriends(prev => prev.map(f => {
-      if (f.id === friendId) {
-        setHistory(h => [{
-          id: Math.random().toString(36).substr(2, 9),
-          type: "payment",
-          title: `Fully settled up by ${f.name}`,
-          amount: f.pending,
-          date: new Date().toISOString(),
-          participants: [f.initial]
-        }, ...h]);
-        return { ...f, expenses: [], pending: 0 };
-      }
-      return f;
-    }));
+  const settleAll = async (friendId: string) => {
+    const friend = friends.find(f => f.id === friendId);
+    if (!friend || friend.pending <= 0) return;
+    
+    await settleAllDb(friendId, friend.pending);
+    await loadData();
   };
 
-  const addFriend = (name: string) => {
-    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-    setFriends(prev => [...prev, {
-      id: Math.random().toString(36).substr(2, 9),
-      name,
-      initial: initials || '?',
-      expenses: [],
-      pending: 0
-    }]);
+  const addFriend = async (name: string) => {
+    await addFriendDb(name);
+    await loadData();
   };
 
   return (
-    <AppContext.Provider value={{ friends, history, addExpense, settleExpense, settleAll, addFriend }}>
+    <AppContext.Provider value={{ friends, history, isLoading, addExpense, settleExpense, settleAll, addFriend }}>
       {children}
     </AppContext.Provider>
   );
