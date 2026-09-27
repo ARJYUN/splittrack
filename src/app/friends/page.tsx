@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Search, UserPlus, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -13,20 +13,51 @@ import { useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 
 export default function FriendsPage() {
-  const { friends } = useAppContext();
+  const { friends, addFriend } = useAppContext();
   const [search, setSearch] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newFriendName, setNewFriendName] = useState("");
 
   const filteredFriends = friends.filter(f => 
     f.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleAddFriend = () => {
+    if (newFriendName.trim()) {
+      addFriend(newFriendName.trim());
+      setNewFriendName("");
+      setIsAddOpen(false);
+    }
+  };
+
   return (
     <PageTransition>
       <header className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Friends</h1>
-        <Button size="icon" variant="outline" className="rounded-full">
-          <UserPlus size={18} />
-        </Button>
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button size="icon" variant="outline" className="rounded-full">
+              <UserPlus size={18} />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md w-[90%] rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Add a Friend</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <Input
+                placeholder="Friend's Name"
+                value={newFriendName}
+                onChange={(e) => setNewFriendName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddFriend()}
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAddFriend} className="w-full">Add Friend</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </header>
 
       <div className="relative mb-6">
@@ -39,7 +70,7 @@ export default function FriendsPage() {
         />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 pb-8">
         {filteredFriends.map((friend) => (
           <Link key={friend.id} href={`/friends/${friend.id}`}>
             <Card className="border-none shadow-sm hover:shadow-md transition-shadow group bg-card/80 backdrop-blur-sm cursor-pointer">

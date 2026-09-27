@@ -31,6 +31,7 @@ type AppContextType = {
   addExpense: (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) => void;
   settleExpense: (friendId: string, expenseId: string) => void;
   settleAll: (friendId: string) => void;
+  addFriend: (name: string) => void;
 };
 
 const INITIAL_FRIENDS: Friend[] = [
@@ -167,8 +168,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
+  const addFriend = (name: string) => {
+    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    setFriends(prev => [...prev, {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      initial: initials || '?',
+      expenses: [],
+      pending: 0
+    }]);
+  };
+
   return (
-    <AppContext.Provider value={{ friends, history, addExpense, settleExpense, settleAll }}>
+    <AppContext.Provider value={{ friends, history, addExpense, settleExpense, settleAll, addFriend }}>
       {children}
     </AppContext.Provider>
   );
