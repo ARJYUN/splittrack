@@ -1,69 +1,140 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { PageTransition } from "@/components/PageTransition";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, IndianRupee, History, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAppContext } from "@/context/AppContext";
+
+export default function Dashboard() {
+  const { friends, settleExpense, settleAll } = useAppContext();
+
+  const handleSettleExpense = (friendId: string, expenseId: string) => {
+    settleExpense(friendId, expenseId);
+  };
+
+  const handleSettleAll = (friendId: string) => {
+    settleAll(friendId);
+  };
+
+  const totalPending = friends.reduce((acc, curr) => acc + curr.pending, 0);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <PageTransition>
+      <header className="mb-6 pt-2">
+        <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
+      </header>
+
+      {/* Simplified Total Card */}
+      <Card className="bg-primary text-primary-foreground border-none shadow-md mb-8 rounded-3xl">
+        <CardContent className="p-6">
+          <div className="text-primary-foreground/80 text-sm font-medium mb-1">Total You Are Owed</div>
+          <div className="text-5xl font-bold flex items-center">
+            <IndianRupee size={36} className="mr-1 opacity-80" />
+            {totalPending}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mb-4">
+        <h2 className="text-xl font-bold tracking-tight">Pending Balances</h2>
+      </div>
+
+      <div className="space-y-5">
+        <AnimatePresence mode="popLayout">
+          {friends.length === 0 ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-10 text-muted-foreground flex flex-col items-center"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              <CheckCircle2 size={48} className="text-success mb-3 opacity-50" />
+              <p>You are all settled up!</p>
+            </motion.div>
+          ) : (
+            friends.map((friend) => (
+              <motion.div
+                key={friend.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Card className="border border-border shadow-sm bg-card rounded-3xl overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="p-4 border-b border-border/50 flex justify-between items-center bg-secondary/10">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 border border-border bg-background shadow-sm">
+                          <AvatarFallback className="font-bold text-foreground text-lg">
+                            {friend.initial}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="font-semibold text-xl">{friend.name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground mb-0.5">Total Owed</div>
+                        <div className="font-bold text-destructive text-2xl tracking-tight">₹{friend.pending}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Friend-wise Expense Breakdown */}
+                    <div className="p-4 bg-background space-y-3">
+                      <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider mb-3">
+                        <History size={12} /> Unpaid Expenses
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <AnimatePresence>
+                          {friend.expenses.map((expense) => (
+                            <motion.div 
+                              key={expense.id} 
+                              layout
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                              className="flex justify-between items-center p-3 rounded-2xl bg-secondary/30 border border-border/50"
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-foreground font-semibold text-sm">{expense.title}</span>
+                                <span className="font-mono text-destructive font-medium text-sm">₹{expense.amount}</span>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-9 rounded-xl bg-success/10 text-success hover:bg-success hover:text-success-foreground border-success/30 font-semibold transition-colors"
+                                onClick={() => handleSettleExpense(friend.id, expense.id)}
+                              >
+                                <Check className="mr-1.5 h-4 w-4" />
+                                Settle
+                              </Button>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                      
+                      {friend.expenses.length > 1 && (
+                        <div className="pt-3 mt-1">
+                          <Button 
+                            variant="ghost"
+                            className="w-full rounded-xl text-muted-foreground hover:bg-success/10 hover:text-success font-semibold h-11"
+                            onClick={() => handleSettleAll(friend.id)}
+                          >
+                            <CheckCircle2 className="mr-2 h-5 w-5" />
+                            Settle All for {friend.name}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
+          )}
+        </AnimatePresence>
+      </div>
+    </PageTransition>
   );
 }
