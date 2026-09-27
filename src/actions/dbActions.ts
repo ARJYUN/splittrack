@@ -36,20 +36,45 @@ export async function getFriendsDb() {
     const totalShares = f.expenseShares.reduce((sum, share) => sum + Number(share.share), 0);
     const totalPayments = f.payments.reduce((sum, p) => sum + Number(p.amount), 0);
     const pending = totalShares - totalPayments;
+    let remainingPayments = totalPayments;
     
-    // Unsettled expenses (simple mock representation: we just return all recent expenses for the ledger)
-    const expenses = f.expenseShares.map(s => ({
-      id: s.expense.id,
-      title: s.expense.title,
-      amount: Number(s.share)
-    })).reverse(); // newest first
+    // Sort shares oldest first to settle oldest debts first
+    const shares = [...f.expenseShares].sort((a, b) => new Date(a.expense.date).getTime() - new Date(b.expense.date).getTime());
+    
+    const unsettledExpenses = [];
+    
+    for (const s of shares) {
+      const shareAmount = Number(s.share);
+      if (remainingPayments >= shareAmount - 0.01) { // 0.01 for floating point safety
+        // Fully settled
+        remainingPayments -= shareAmount;
+      } else if (remainingPayments > 0) {
+        // Partially settled
+        unsettledExpenses.push({
+          id: s.expense.id,
+          title: s.expense.title,
+          amount: Number((shareAmount - remainingPayments).toFixed(2))
+        });
+        remainingPayments = 0;
+      } else {
+        // Fully unsettled
+        unsettledExpenses.push({
+          id: s.expense.id,
+          title: s.expense.title,
+          amount: shareAmount
+        });
+      }
+    }
+    
+    // Reverse so newest unsettled are on top
+    unsettledExpenses.reverse();
 
     return {
       id: f.id,
       name: f.name,
       initial: f.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
       pending: Number(pending.toFixed(2)),
-      expenses
+      expenses: unsettledExpenses
     };
   });
 }
