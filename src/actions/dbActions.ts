@@ -94,7 +94,7 @@ export async function getHistoryDb() {
   return history;
 }
 
-export async function addExpenseDb(title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) {
+export async function addExpenseDb(title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string) {
   const user = await getOrCreateUser();
 
   const expense = await prisma.expense.create({
@@ -102,11 +102,11 @@ export async function addExpenseDb(title: string, amount: number, participantIds
       title,
       amount,
       userId: user.id,
+      date: new Date(date)
     }
   });
 
   for (const pid of participantIds) {
-    if (pid === 'me') continue;
     let share = 0;
     if (splitMethod === "equal") {
       share = amount / participantIds.length;
@@ -117,7 +117,7 @@ export async function addExpenseDb(title: string, amount: number, participantIds
       await prisma.expenseParticipant.create({
         data: {
           expenseId: expense.id,
-          friendId: pid,
+          friendId: pid === 'me' ? null : pid,
           share
         }
       });
@@ -153,5 +153,17 @@ export async function addFriendDb(name: string) {
       name,
       userId: user.id
     }
+  });
+}
+
+export async function deleteExpenseDb(id: string) {
+  await prisma.expense.delete({
+    where: { id }
+  });
+}
+
+export async function deletePaymentDb(id: string) {
+  await prisma.payment.delete({
+    where: { id }
   });
 }

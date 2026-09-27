@@ -30,10 +30,11 @@ type AppContextType = {
   friends: Friend[];
   history: Transaction[];
   isLoading: boolean;
-  addExpense: (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) => Promise<void>;
+  addExpense: (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string) => Promise<void>;
   settleExpense: (friendId: string, expenseId: string) => Promise<void>;
   settleAll: (friendId: string) => Promise<void>;
   addFriend: (name: string) => Promise<void>;
+  deleteTransaction: (id: string, type: "expense" | "payment") => Promise<void>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -60,9 +61,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, []);
 
-  const addExpense = async (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>) => {
+  const addExpense = async (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string) => {
     // Optimistic UI could go here, but let's just await for true consistency
-    await addExpenseDb(title, amount, participantIds, splitMethod, customAmounts);
+    await addExpenseDb(title, amount, participantIds, splitMethod, customAmounts, date);
     await loadData();
   };
 
@@ -89,8 +90,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadData();
   };
 
+  const deleteTransaction = async (id: string, type: "expense" | "payment") => {
+    if (type === "expense") {
+      const { deleteExpenseDb } = await import('@/actions/dbActions');
+      await deleteExpenseDb(id);
+    } else {
+      const { deletePaymentDb } = await import('@/actions/dbActions');
+      await deletePaymentDb(id);
+    }
+    await loadData();
+  };
+
   return (
-    <AppContext.Provider value={{ friends, history, isLoading, addExpense, settleExpense, settleAll, addFriend }}>
+    <AppContext.Provider value={{ friends, history, isLoading, addExpense, settleExpense, settleAll, addFriend, deleteTransaction }}>
       {children}
     </AppContext.Provider>
   );

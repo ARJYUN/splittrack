@@ -22,19 +22,18 @@ const TEMPLATES = [
   { name: "Cab", icon: Car, amount: 350 },
 ];
 
-const FRIENDS = [
-  { id: "me", name: "Me (Arjun)", initial: "M" },
-  { id: "1", name: "Rahul", initial: "R" },
-  { id: "2", name: "Adarsh", initial: "A" },
-  { id: "3", name: "Abhinav", initial: "AB" },
-];
-
 export default function AddExpense() {
-  const { addExpense } = useAppContext();
+  const { addExpense, friends: contextFriends } = useAppContext();
   
+  const activeFriends = [
+    { id: "me", name: "Me (Arjun)", initial: "M" },
+    ...contextFriends.map(f => ({ id: f.id, name: f.name, initial: f.initial }))
+  ];
+
   const [expenseName, setExpenseName] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedFriends, setSelectedFriends] = useState<string[]>(["me", "1", "2", "3"]);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedFriends, setSelectedFriends] = useState<string[]>(activeFriends.map(f => f.id));
   const [splitMethod, setSplitMethod] = useState("equal");
   const [isSuccess, setIsSuccess] = useState(false);
   const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({});
@@ -58,13 +57,14 @@ export default function AddExpense() {
   };
 
   const handleSave = () => {
-    addExpense(expenseName, parsedAmount, selectedFriends, splitMethod, customAmounts);
+    addExpense(expenseName, parsedAmount, selectedFriends, splitMethod, customAmounts, date);
     setIsSuccess(true);
     setTimeout(() => {
       setIsSuccess(false);
       setExpenseName("");
       setAmount("");
       setCustomAmounts({});
+      setDate(new Date().toISOString().split('T')[0]);
     }, 2500);
   };
 
@@ -145,7 +145,14 @@ export default function AddExpense() {
             <div className="space-y-1.5 flex justify-between items-center bg-secondary/30 p-3 rounded-xl">
               <div>
                 <Label className="text-muted-foreground">Date</Label>
-                <div className="font-medium">{format(new Date(), "MMM dd, yyyy")}</div>
+                <div>
+                  <input 
+                    type="date" 
+                    className="bg-transparent border-none text-foreground p-0 font-medium w-[120px] focus:ring-0 outline-none" 
+                    value={date} 
+                    onChange={(e) => setDate(e.target.value)} 
+                  />
+                </div>
               </div>
               <div className="text-right">
                 <Label className="text-muted-foreground">Paid By</Label>
@@ -158,7 +165,7 @@ export default function AddExpense() {
         <div>
           <Label className="mb-3 block text-base font-semibold">Participants</Label>
           <div className="grid grid-cols-4 gap-3">
-            {FRIENDS.map((friend) => {
+            {activeFriends.map((friend) => {
               const isSelected = selectedFriends.includes(friend.id);
               return (
                 <div 
@@ -218,7 +225,7 @@ export default function AddExpense() {
                 {splitMethod === "custom" && (
                   <div className="space-y-3">
                     {selectedFriends.map((id) => {
-                      const f = FRIENDS.find(x => x.id === id);
+                      const f = activeFriends.find(x => x.id === id);
                       return (
                         <div key={id} className="flex items-center justify-between bg-card p-3 rounded-xl border border-border/50">
                           <div className="flex items-center gap-3">

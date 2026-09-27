@@ -4,12 +4,12 @@ import { PageTransition } from "@/components/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, IndianRupee, History, Check } from "lucide-react";
+import { CheckCircle2, IndianRupee, History, Check, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppContext } from "@/context/AppContext";
 
 export default function Dashboard() {
-  const { friends, settleExpense, settleAll } = useAppContext();
+  const { friends, settleExpense, settleAll, deleteTransaction } = useAppContext();
 
   const handleSettleExpense = (friendId: string, expenseId: string) => {
     settleExpense(friendId, expenseId);
@@ -101,15 +101,25 @@ export default function Dashboard() {
                                 <span className="text-foreground font-semibold text-sm">{expense.title}</span>
                                 <span className="font-mono text-destructive font-medium text-sm">₹{expense.amount}</span>
                               </div>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-9 rounded-xl bg-success/10 text-success hover:bg-success hover:text-success-foreground border-success/30 font-semibold transition-colors"
-                                onClick={() => handleSettleExpense(friend.id, expense.id)}
-                              >
-                                <Check className="mr-1.5 h-4 w-4" />
-                                Settle
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="h-9 rounded-xl bg-success/10 text-success hover:bg-success hover:text-success-foreground border-success/30 font-semibold transition-colors"
+                                  onClick={() => handleSettleExpense(friend.id, expense.id)}
+                                >
+                                  <Check className="mr-1.5 h-4 w-4" />
+                                  Settle
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                  onClick={() => deleteTransaction(expense.id, "expense")}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </motion.div>
                           ))}
                         </AnimatePresence>

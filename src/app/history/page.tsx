@@ -4,14 +4,14 @@ import { PageTransition } from "@/components/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Coffee, Pizza, Car, Wallet, Receipt } from "lucide-react";
+import { Search, Filter, Coffee, Pizza, Car, Wallet, Receipt, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppContext, Transaction } from "@/context/AppContext";
 import { formatDistanceToNow } from "date-fns";
 
 export default function HistoryPage() {
-  const { history } = useAppContext();
+  const { history, deleteTransaction } = useAppContext();
 
   const getIcon = (t: Transaction) => {
     if (t.type === 'payment') return Wallet;
@@ -68,19 +68,27 @@ export default function HistoryPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="flex flex-col items-end shrink-0 gap-1">
                     <div className={cn(
                       "font-bold",
                       item.type === 'payment' ? 'text-success' : 'text-foreground'
                     )}>
                       ₹{item.amount}
                     </div>
-                    <Badge variant="outline" className={cn(
-                      "text-[9px] px-1.5 py-0 h-4 border-none mt-1 font-bold",
-                      item.type === 'payment' ? 'bg-success/10 text-success' : 'bg-secondary text-secondary-foreground'
-                    )}>
-                      {item.type === 'payment' ? 'Settled' : 'Split'}
-                    </Badge>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className={cn(
+                        "text-[9px] px-1.5 py-0 h-4 border-none font-bold",
+                        item.type === 'payment' ? 'bg-success/10 text-success' : 'bg-secondary text-secondary-foreground'
+                      )}>
+                        {item.type === 'payment' ? 'Settled' : 'Split'}
+                      </Badge>
+                      <button 
+                        onClick={() => deleteTransaction(item.id, item.type)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
