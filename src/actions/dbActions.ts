@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 // In a real app we'd get this from auth session
 const MOCK_USER_EMAIL = "test@splittrack.com";
@@ -174,6 +175,8 @@ export async function addExpenseDb(title: string, amount: number, participantIds
       });
     }
   }
+  revalidatePath("/");
+  revalidatePath("/friends");
 }
 
 export async function settleAllDb(friendId: string, pendingAmount: number) {
@@ -185,6 +188,8 @@ export async function settleAllDb(friendId: string, pendingAmount: number) {
       method: "cash",
     }
   });
+  revalidatePath("/");
+  revalidatePath("/friends");
 }
 
 export async function settleExpenseDb(friendId: string, amount: number, expenseId?: string) {
@@ -196,6 +201,8 @@ export async function settleExpenseDb(friendId: string, amount: number, expenseI
       method: "cash",
     }
   });
+  revalidatePath("/");
+  revalidatePath("/friends");
 }
 
 export async function addFriendDb(name: string, avatar?: string) {
@@ -207,22 +214,30 @@ export async function addFriendDb(name: string, avatar?: string) {
       userId: user.id
     }
   });
+  revalidatePath("/");
+  revalidatePath("/friends");
 }
 
 export async function deleteExpenseDb(id: string) {
   await prisma.expense.delete({
     where: { id }
   });
+  revalidatePath("/");
+  revalidatePath("/friends");
 }
 
 export async function deletePaymentDb(id: string) {
   await prisma.payment.delete({
     where: { id }
   });
+  revalidatePath("/");
+  revalidatePath("/friends");
 }
 
 export async function deleteFriendDb(id: string) {
   await prisma.friend.delete({
     where: { id }
   });
+  revalidatePath("/");
+  revalidatePath("/friends");
 }
