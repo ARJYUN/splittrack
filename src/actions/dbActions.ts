@@ -44,7 +44,12 @@ export async function getFriendsDb() {
     let remainingGeneralPayments = generalPayments.reduce((sum, p) => sum + Number(p.amount), 0);
     
     // Sort shares oldest first to settle oldest debts first
-    const shares = [...f.expenseShares].sort((a, b) => new Date(a.expense.date).getTime() - new Date(b.expense.date).getTime());
+    const shares = [...f.expenseShares].sort((a, b) => {
+      const timeDiff = new Date(a.expense.date).getTime() - new Date(b.expense.date).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      // Stable sort fallback so expenses on the same day don't randomly swap places
+      return a.expense.id.localeCompare(b.expense.id);
+    });
     
     const processedExpenses = [];
     
@@ -181,6 +186,23 @@ export async function addExpenseDb(title: string, amount: number, participantIds
 
 export async function settleAllDb(friendId: string, pendingAmount: number) {
   if (pendingAmount <= 0) return;
+  
+  // Recalculate true pending amount to prevent double clicks creating negative balances
+  const friend = await prisma.friend.findUnique({
+    where: { id: friendId },
+    include: { expenseShares: true, payments: true }
+  });
+  if (friend) {
+    const totalShares = friend.expenseShares.reduce((sum, share) => sum + Number(share.share), 0);
+    const totalPayments = friend.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const actualPending = totalShares - totalPayments;
+    
+    if (actualPending <= 0) return; // Already fully settled
+    if (pendingAmount > actualPending) {
+      pendingAmount = actualPending; // Clamp to actual pending
+    }
+  }
+
   await prisma.payment.create({
     data: {
       friendId,
@@ -193,6 +215,33 @@ export async function settleAllDb(friendId: string, pendingAmount: number) {
 }
 
 export async function settleExpenseDb(friendId: string, amount: number, expenseId?: string) {
+  if (expenseId) {
+    const friend = await prisma.friend.findUnique({
+      where: { id: friendId },
+      include: {
+        expenseShares: true,
+        payments: true
+      }
+    });
+    if (friend) {
+      const share = friend.expenseShares.find(s => s.expenseId === expenseId);
+      if (share) {
+        const specificPayments = friend.payments
+          .filter(p => p.expenseId === expenseId)
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+        const remaining = Number(share.share) - specificPayments;
+        
+        if (remaining <= 0) {
+          // Already fully settled, avoid duplicate payments from UI double-clicks
+          return;
+        }
+        if (amount > remaining) {
+          amount = remaining; // Clamp to prevent negative pending balance
+        }
+      }
+    }
+  }
+
   await prisma.payment.create({
     data: {
       friendId,
