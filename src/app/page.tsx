@@ -2,11 +2,12 @@
 
 import { PageTransition } from "@/components/PageTransition";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, IndianRupee, History, Check, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppContext } from "@/context/AppContext";
+import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { friends, settleExpense, settleAll, deleteTransaction } = useAppContext();
@@ -68,6 +69,7 @@ export default function Dashboard() {
                     <div className="p-4 border-b border-border/50 flex justify-between items-center bg-secondary/10">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 border border-border bg-background shadow-sm">
+                          {friend.avatar && <AvatarImage src={friend.avatar} alt={friend.name} className="object-cover" />}
                           <AvatarFallback className="font-bold text-foreground text-lg">
                             {friend.initial}
                           </AvatarFallback>
@@ -97,20 +99,29 @@ export default function Dashboard() {
                               exit={{ opacity: 0, height: 0, scale: 0.95 }}
                               className="flex justify-between items-center p-3 rounded-2xl bg-secondary/30 border border-border/50"
                             >
-                              <div className="flex flex-col">
-                                <span className="text-foreground font-semibold text-sm">{expense.title}</span>
-                                <span className="font-mono text-destructive font-medium text-sm">₹{expense.amount}</span>
+                              <div className="flex items-center gap-3">
+                                {expense.imageUrl && (
+                                  <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-secondary/50">
+                                    <img src={expense.imageUrl} alt="Receipt" className="w-full h-full object-cover" />
+                                  </div>
+                                )}
+                                <div className="flex flex-col">
+                                  <span className={cn("text-foreground font-semibold text-sm", expense.isSettled && "line-through text-muted-foreground")}>{expense.title}</span>
+                                  <span className={cn("font-mono font-medium text-sm", expense.isSettled ? "text-muted-foreground line-through" : "text-destructive")}>₹{expense.remainingAmount ?? expense.amount}</span>
+                                </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="h-9 rounded-xl bg-success/10 text-success hover:bg-success hover:text-success-foreground border-success/30 font-semibold transition-colors"
-                                  onClick={() => handleSettleExpense(friend.id, expense.id)}
-                                >
-                                  <Check className="mr-1.5 h-4 w-4" />
-                                  Settle
-                                </Button>
+                                {!expense.isSettled && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-9 rounded-xl bg-success/10 text-success hover:bg-success hover:text-success-foreground border-success/30 font-semibold transition-colors"
+                                    onClick={() => handleSettleExpense(friend.id, expense.id)}
+                                  >
+                                    <Check className="mr-1.5 h-4 w-4" />
+                                    Settle
+                                  </Button>
+                                )}
                                 <Button 
                                   size="sm" 
                                   variant="ghost" 

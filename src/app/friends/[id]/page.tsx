@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTransition } from "@/components/PageTransition";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,7 @@ export default function FriendDetail({ params }: { params: Promise<{ id: string 
         </Link>
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16 border-2 border-border shadow-sm">
+            {friend.avatar && <AvatarImage src={friend.avatar} alt={friend.name} className="object-cover" />}
             <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">{friend.initial}</AvatarFallback>
           </Avatar>
           <div>
@@ -92,9 +93,16 @@ export default function FriendDetail({ params }: { params: Promise<{ id: string 
               </div>
               <Card className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] border-none shadow-sm bg-card">
                 <CardContent className="p-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-sm">{t.title}</div>
-                    <div className="text-xs text-muted-foreground">Pending</div>
+                  <div className="flex items-center gap-3">
+                    {t.imageUrl && (
+                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-secondary/50">
+                        <img src={t.imageUrl} alt="Receipt" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-semibold text-sm">{t.title}</div>
+                      <div className="text-xs text-muted-foreground">Pending</div>
+                    </div>
                   </div>
                   <div className="font-bold font-mono text-destructive">
                     +₹{t.amount}

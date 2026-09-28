@@ -56,6 +56,11 @@ export default function HistoryPage() {
                     </div>
                     <div>
                       <div className="font-semibold text-sm line-clamp-1">{item.title}</div>
+                      {item.imageUrl && (
+                        <div className="mt-1 mb-1 w-12 h-12 rounded overflow-hidden">
+                          <img src={item.imageUrl} alt="Receipt" className="w-full h-full object-cover" />
+                        </div>
+                      )}
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
                       </div>

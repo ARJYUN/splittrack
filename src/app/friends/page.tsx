@@ -3,7 +3,7 @@
 import { PageTransition } from "@/components/PageTransition";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Search, UserPlus, ChevronRight } from "lucide-react";
@@ -17,6 +17,18 @@ export default function FriendsPage() {
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newFriendName, setNewFriendName] = useState("");
+  const [newFriendAvatar, setNewFriendAvatar] = useState("");
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewFriendAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const filteredFriends = friends.filter(f => 
     f.name.toLowerCase().includes(search.toLowerCase())
@@ -24,8 +36,9 @@ export default function FriendsPage() {
 
   const handleAddFriend = () => {
     if (newFriendName.trim()) {
-      addFriend(newFriendName.trim());
+      addFriend(newFriendName.trim(), newFriendAvatar);
       setNewFriendName("");
+      setNewFriendAvatar("");
       setIsAddOpen(false);
     }
   };
@@ -43,6 +56,21 @@ export default function FriendsPage() {
               <DialogTitle>Add a Friend</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-4 py-4">
+              <div className="flex justify-center">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden bg-secondary border-2 border-border flex items-center justify-center cursor-pointer group">
+                  {newFriendAvatar ? (
+                    <img src={newFriendAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <UserPlus size={24} className="text-muted-foreground group-hover:scale-110 transition-transform" />
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
               <Input
                 placeholder="Friend's Name"
                 value={newFriendName}
@@ -75,6 +103,7 @@ export default function FriendsPage() {
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-12 w-12 border border-border/50">
+                    {friend.avatar && <AvatarImage src={friend.avatar} alt={friend.name} className="object-cover" />}
                     <AvatarFallback className={cn(
                       "font-semibold text-white",
                       friend.pending > 0 ? 'bg-destructive/80' : 'bg-success/80'

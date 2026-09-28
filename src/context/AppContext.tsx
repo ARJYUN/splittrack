@@ -7,12 +7,16 @@ export type Expense = {
   id: string;
   title: string;
   amount: number;
+  isSettled?: boolean;
+  remainingAmount?: number;
+  imageUrl?: string;
 };
 
 export type Friend = {
   id: string;
   name: string;
   initial: string;
+  avatar?: string | null;
   expenses: Expense[];
   pending: number;
 };
@@ -24,16 +28,17 @@ export type Transaction = {
   amount: number;
   date: string;
   participants: string[];
+  imageUrl?: string;
 };
 
 type AppContextType = {
   friends: Friend[];
   history: Transaction[];
   isLoading: boolean;
-  addExpense: (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string) => Promise<void>;
+  addExpense: (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string, imageUrl?: string) => Promise<void>;
   settleExpense: (friendId: string, expenseId: string) => Promise<void>;
   settleAll: (friendId: string) => Promise<void>;
-  addFriend: (name: string) => Promise<void>;
+  addFriend: (name: string, avatar?: string) => Promise<void>;
   deleteTransaction: (id: string, type: "expense" | "payment") => Promise<void>;
 };
 
@@ -61,9 +66,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, []);
 
-  const addExpense = async (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string) => {
+  const addExpense = async (title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string, imageUrl?: string) => {
     // Optimistic UI could go here, but let's just await for true consistency
-    await addExpenseDb(title, amount, participantIds, splitMethod, customAmounts, date);
+    await addExpenseDb(title, amount, participantIds, splitMethod, customAmounts, date, imageUrl);
     await loadData();
   };
 
@@ -85,8 +90,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadData();
   };
 
-  const addFriend = async (name: string) => {
-    await addFriendDb(name);
+  const addFriend = async (name: string, avatar?: string) => {
+    await addFriendDb(name, avatar);
     await loadData();
   };
 

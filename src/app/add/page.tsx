@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Coffee, Pizza, Croissant, Car, CheckCircle2 } from "lucide-react";
+import { Coffee, Pizza, Croissant, Car, CheckCircle2, ImagePlus, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { useAppContext } from "@/context/AppContext";
@@ -33,6 +33,7 @@ export default function AddExpense() {
   const [expenseName, setExpenseName] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [imageUrl, setImageUrl] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<string[]>(activeFriends.map(f => f.id));
   const [splitMethod, setSplitMethod] = useState("equal");
   const [isSuccess, setIsSuccess] = useState(false);
@@ -40,6 +41,17 @@ export default function AddExpense() {
 
   const parsedAmount = parseFloat(amount) || 0;
   const equalShare = selectedFriends.length > 0 ? parsedAmount / selectedFriends.length : 0;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleTemplateClick = (tpl: any) => {
     setExpenseName(tpl.name);
@@ -57,7 +69,7 @@ export default function AddExpense() {
   };
 
   const handleSave = () => {
-    addExpense(expenseName, parsedAmount, selectedFriends, splitMethod, customAmounts, date);
+    addExpense(expenseName, parsedAmount, selectedFriends, splitMethod, customAmounts, date, imageUrl);
     setIsSuccess(true);
     setTimeout(() => {
       setIsSuccess(false);
@@ -65,6 +77,7 @@ export default function AddExpense() {
       setAmount("");
       setCustomAmounts({});
       setDate(new Date().toISOString().split('T')[0]);
+      setImageUrl("");
     }, 2500);
   };
 
@@ -142,21 +155,50 @@ export default function AddExpense() {
                 className="bg-secondary/50 border-none h-14 text-3xl font-bold font-mono"
               />
             </div>
-            <div className="space-y-1.5 flex justify-between items-center bg-secondary/30 p-3 rounded-xl">
-              <div>
-                <Label className="text-muted-foreground">Date</Label>
+            <div className="space-y-3">
+              <div className="space-y-1.5 flex justify-between items-center bg-secondary/30 p-3 rounded-xl">
                 <div>
-                  <input 
-                    type="date" 
-                    className="bg-transparent border-none text-foreground p-0 font-medium w-[120px] focus:ring-0 outline-none" 
-                    value={date} 
-                    onChange={(e) => setDate(e.target.value)} 
-                  />
+                  <Label className="text-muted-foreground">Date</Label>
+                  <div>
+                    <input 
+                      type="date" 
+                      className="bg-transparent border-none text-foreground p-0 font-medium w-[120px] focus:ring-0 outline-none" 
+                      value={date} 
+                      onChange={(e) => setDate(e.target.value)} 
+                    />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Label className="text-muted-foreground">Paid By</Label>
+                  <div className="font-medium text-primary">Me</div>
                 </div>
               </div>
-              <div className="text-right">
-                <Label className="text-muted-foreground">Paid By</Label>
-                <div className="font-medium text-primary">Me</div>
+
+              <div className="bg-secondary/30 p-3 rounded-xl">
+                {imageUrl ? (
+                  <div className="relative rounded-lg overflow-hidden h-32 w-full bg-black/5">
+                    <img src={imageUrl} alt="Receipt" className="object-cover w-full h-full" />
+                    <button 
+                      onClick={() => setImageUrl("")}
+                      className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <Label className="text-muted-foreground cursor-pointer flex items-center gap-2">
+                      <ImagePlus size={16} />
+                      Attach Receipt
+                    </Label>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

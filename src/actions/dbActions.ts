@@ -41,40 +41,55 @@ export async function getFriendsDb() {
     // Sort shares oldest first to settle oldest debts first
     const shares = [...f.expenseShares].sort((a, b) => new Date(a.expense.date).getTime() - new Date(b.expense.date).getTime());
     
-    const unsettledExpenses = [];
+    const processedExpenses = [];
     
     for (const s of shares) {
       const shareAmount = Number(s.share);
-      if (remainingPayments >= shareAmount - 0.01) { // 0.01 for floating point safety
+      if (remainingPayments >= shareAmount - 0.01) { 
         // Fully settled
         remainingPayments -= shareAmount;
-      } else if (remainingPayments > 0) {
-        // Partially settled
-        unsettledExpenses.push({
+        processedExpenses.push({
           id: s.expense.id,
           title: s.expense.title,
-          amount: Number((shareAmount - remainingPayments).toFixed(2))
+          amount: shareAmount,
+          remainingAmount: 0,
+          isSettled: true,
+          imageUrl: s.expense.imageUrl
+        });
+      } else if (remainingPayments > 0) {
+        // Partially settled
+        processedExpenses.push({
+          id: s.expense.id,
+          title: s.expense.title,
+          amount: shareAmount,
+          remainingAmount: Number((shareAmount - remainingPayments).toFixed(2)),
+          isSettled: false,
+          imageUrl: s.expense.imageUrl
         });
         remainingPayments = 0;
       } else {
         // Fully unsettled
-        unsettledExpenses.push({
+        processedExpenses.push({
           id: s.expense.id,
           title: s.expense.title,
-          amount: shareAmount
+          amount: shareAmount,
+          remainingAmount: shareAmount,
+          isSettled: false,
+          imageUrl: s.expense.imageUrl
         });
       }
     }
     
-    // Reverse so newest unsettled are on top
-    unsettledExpenses.reverse();
+    // Reverse so newest are on top
+    processedExpenses.reverse();
 
     return {
       id: f.id,
       name: f.name,
       initial: f.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+      avatar: f.avatar,
       pending: Number(pending.toFixed(2)),
-      expenses: unsettledExpenses
+      expenses: processedExpenses
     };
   });
 }
@@ -104,7 +119,8 @@ export async function getHistoryDb() {
       title: e.title,
       amount: Number(e.amount),
       date: e.date.toISOString(),
-      participants: e.participants.map(p => p.friend ? p.friend.name.substring(0, 2).toUpperCase() : 'ME')
+      participants: e.participants.map(p => p.friend ? p.friend.name.substring(0, 2).toUpperCase() : 'ME'),
+      imageUrl: e.imageUrl
     })),
     ...payments.map(p => ({
       id: p.id,
@@ -119,7 +135,7 @@ export async function getHistoryDb() {
   return history;
 }
 
-export async function addExpenseDb(title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string) {
+export async function addExpenseDb(title: string, amount: number, participantIds: string[], splitMethod: string, customAmounts: Record<string, number>, date: string, imageUrl?: string) {
   const user = await getOrCreateUser();
 
   const expense = await prisma.expense.create({
@@ -127,7 +143,8 @@ export async function addExpenseDb(title: string, amount: number, participantIds
       title,
       amount,
       userId: user.id,
-      date: new Date(date)
+      date: new Date(date),
+      imageUrl
     }
   });
 
@@ -171,11 +188,12 @@ export async function settleExpenseDb(friendId: string, amount: number) {
   });
 }
 
-export async function addFriendDb(name: string) {
+export async function addFriendDb(name: string, avatar?: string) {
   const user = await getOrCreateUser();
   await prisma.friend.create({
     data: {
       name,
+      avatar,
       userId: user.id
     }
   });
