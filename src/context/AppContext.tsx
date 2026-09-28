@@ -39,6 +39,7 @@ type AppContextType = {
   settleExpense: (friendId: string, expenseId: string) => Promise<void>;
   settleAll: (friendId: string) => Promise<void>;
   addFriend: (name: string, avatar?: string) => Promise<void>;
+  deleteFriend: (friendId: string) => Promise<void>;
   deleteTransaction: (id: string, type: "expense" | "payment") => Promise<void>;
 };
 
@@ -78,7 +79,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const exp = friend.expenses.find(e => e.id === expenseId);
     if (!exp) return;
     
-    await settleExpenseDb(friendId, exp.amount);
+    await settleExpenseDb(friendId, exp.remainingAmount ?? exp.amount, expenseId);
     await loadData();
   };
 
@@ -95,6 +96,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadData();
   };
 
+  const deleteFriend = async (friendId: string) => {
+    const { deleteFriendDb } = await import('@/actions/dbActions');
+    await deleteFriendDb(friendId);
+    await loadData();
+  };
+
   const deleteTransaction = async (id: string, type: "expense" | "payment") => {
     if (type === "expense") {
       const { deleteExpenseDb } = await import('@/actions/dbActions');
@@ -107,7 +114,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ friends, history, isLoading, addExpense, settleExpense, settleAll, addFriend, deleteTransaction }}>
+    <AppContext.Provider value={{ friends, history, isLoading, addExpense, settleExpense, settleAll, addFriend, deleteFriend, deleteTransaction }}>
       {children}
     </AppContext.Provider>
   );

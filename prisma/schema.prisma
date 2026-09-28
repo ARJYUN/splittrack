@@ -84,6 +84,7 @@ model Expense {
   paidById  String?  // null means User paid. A friend's ID means that friend paid.
   
   participants ExpenseParticipant[]
+  payments     Payment[]
   createdAt    DateTime @default(now())
 }
 
@@ -103,6 +104,9 @@ model Payment {
   id        String   @id @default(cuid())
   friendId  String
   friend    Friend   @relation(fields: [friendId], references: [id], onDelete: Cascade)
+  
+  expenseId String?
+  expense   Expense? @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   
   amount    Decimal  @db.Decimal(10, 2)
   date      DateTime @default(now())

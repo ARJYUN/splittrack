@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowDownToLine, Plus, Coffee, Wallet, ArrowRightLeft } from "lucide-react";
+import { ArrowLeft, ArrowDownToLine, Plus, Coffee, Wallet, ArrowRightLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { use } from "react";
@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 
 export default function FriendDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { friends, settleAll } = useAppContext();
+  const { friends, settleAll, deleteFriend } = useAppContext();
   const router = useRouter();
 
   const friend = friends.find(f => f.id === id);
@@ -33,12 +33,24 @@ export default function FriendDetail({ params }: { params: Promise<{ id: string 
     router.push("/");
   };
 
+  const handleDeleteFriend = async () => {
+    if (window.confirm("Are you sure you want to delete this friend? This will remove all their associated expenses and payments.")) {
+      await deleteFriend(friend.id);
+      router.push("/friends");
+    }
+  };
+
   return (
     <PageTransition>
       <header className="mb-6">
-        <Link href="/friends" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
-          <ArrowLeft size={16} className="mr-1" /> Back
-        </Link>
+        <div className="flex justify-between items-center mb-4">
+          <Link href="/friends" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={16} className="mr-1" /> Back
+          </Link>
+          <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8" onClick={handleDeleteFriend}>
+            <Trash2 size={16} className="mr-1.5" /> Delete
+          </Button>
+        </div>
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16 border-2 border-border shadow-sm">
             {friend.avatar && <AvatarImage src={friend.avatar} alt={friend.name} className="object-cover" />}

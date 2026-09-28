@@ -36,7 +36,11 @@ export async function getFriendsDb() {
     const totalShares = f.expenseShares.reduce((sum, share) => sum + Number(share.share), 0);
     const totalPayments = f.payments.reduce((sum, p) => sum + Number(p.amount), 0);
     const pending = totalShares - totalPayments;
-    let remainingPayments = totalPayments;
+    // Separate specific vs general payments
+    const specificPayments = f.payments.filter(p => p.expenseId);
+    const generalPayments = f.payments.filter(p => !p.expenseId);
+    
+    let remainingGeneralPayments = generalPayments.reduce((sum, p) => sum + Number(p.amount), 0);
     
     // Sort shares oldest first to settle oldest debts first
     const shares = [...f.expenseShares].sort((a, b) => new Date(a.expense.date).getTime() - new Date(b.expense.date).getTime());
@@ -45,9 +49,14 @@ export async function getFriendsDb() {
     
     for (const s of shares) {
       const shareAmount = Number(s.share);
-      if (remainingPayments >= shareAmount - 0.01) { 
+      
+      const specificForThis = specificPayments.filter(p => p.expenseId === s.expense.id).reduce((sum, p) => sum + Number(p.amount), 0);
+      let remainingForThis = shareAmount - specificForThis;
+      if (remainingForThis < 0) remainingForThis = 0;
+
+      if (remainingGeneralPayments >= remainingForThis - 0.01) { 
         // Fully settled
-        remainingPayments -= shareAmount;
+        remainingGeneralPayments -= remainingForThis;
         processedExpenses.push({
           id: s.expense.id,
           title: s.expense.title,
@@ -56,25 +65,25 @@ export async function getFriendsDb() {
           isSettled: true,
           imageUrl: s.expense.imageUrl
         });
-      } else if (remainingPayments > 0) {
+      } else if (remainingGeneralPayments > 0) {
         // Partially settled
         processedExpenses.push({
           id: s.expense.id,
           title: s.expense.title,
           amount: shareAmount,
-          remainingAmount: Number((shareAmount - remainingPayments).toFixed(2)),
+          remainingAmount: Number((remainingForThis - remainingGeneralPayments).toFixed(2)),
           isSettled: false,
           imageUrl: s.expense.imageUrl
         });
-        remainingPayments = 0;
+        remainingGeneralPayments = 0;
       } else {
-        // Fully unsettled
+        // Unsettled
         processedExpenses.push({
           id: s.expense.id,
           title: s.expense.title,
           amount: shareAmount,
-          remainingAmount: shareAmount,
-          isSettled: false,
+          remainingAmount: Number(remainingForThis.toFixed(2)),
+          isSettled: remainingForThis <= 0.01,
           imageUrl: s.expense.imageUrl
         });
       }
@@ -178,10 +187,11 @@ export async function settleAllDb(friendId: string, pendingAmount: number) {
   });
 }
 
-export async function settleExpenseDb(friendId: string, amount: number) {
+export async function settleExpenseDb(friendId: string, amount: number, expenseId?: string) {
   await prisma.payment.create({
     data: {
       friendId,
+      expenseId,
       amount,
       method: "cash",
     }
@@ -207,6 +217,12 @@ export async function deleteExpenseDb(id: string) {
 
 export async function deletePaymentDb(id: string) {
   await prisma.payment.delete({
+    where: { id }
+  });
+}
+
+export async function deleteFriendDb(id: string) {
+  await prisma.friend.delete({
     where: { id }
   });
 }
