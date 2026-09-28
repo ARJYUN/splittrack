@@ -9,7 +9,7 @@ export type Expense = {
   amount: number;
   isSettled?: boolean;
   remainingAmount?: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
 };
 
 export type Friend = {
@@ -28,7 +28,7 @@ export type Transaction = {
   amount: number;
   date: string;
   participants: string[];
-  imageUrl?: string;
+  imageUrl?: string | null;
 };
 
 type AppContextType = {
